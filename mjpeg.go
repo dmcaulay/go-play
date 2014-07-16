@@ -12,7 +12,10 @@ import (
 )
 
 func main() {
-	urls := [1]string{"http://extcam-14.se.axis.com/axis-cgi/mjpg/video.cgi?resolution=640x480"}
+	urls := []string{
+		"http://extcam-14.se.axis.com/axis-cgi/mjpg/video.cgi?resolution=320x240",
+		"http://extcam-12.se.axis.com/axis-cgi/mjpg/video.cgi?resolution=320x240",
+	}
 	for id, url := range urls {
 		resp, err := http.Get(url)
 		if err != nil {
@@ -23,16 +26,20 @@ func main() {
 				log.Fatal(err)
 			}
 			if strings.HasPrefix(mediaType, "multipart/") {
-				readStream(id, multipart.NewReader(resp.Body, params["boundary"]))
+				log.Printf("starting stream %d", id)
+				go readStream(id, multipart.NewReader(resp.Body, params["boundary"]))
 			}
 		}
 	}
+	var end string
+	fmt.Scanln(&end)
 }
 
 func readStream(id int, mr *multipart.Reader) {
 	for i := 0; true; i++ {
 		part, err := mr.NextPart()
 		if err == io.EOF {
+			log.Printf("ending stream %d", id)
 			return
 		}
 		if err != nil {
