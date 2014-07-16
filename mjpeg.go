@@ -11,35 +11,70 @@ import (
 	"strings"
 )
 
+type frame struct {
+	id   int
+	num  int
+	jpeg io.Reader
+}
+
 func main() {
 	urls := []string{
 		"http://extcam-14.se.axis.com/axis-cgi/mjpg/video.cgi?resolution=320x240",
 		"http://extcam-12.se.axis.com/axis-cgi/mjpg/video.cgi?resolution=320x240",
 	}
+
+	c := make(chan frame)
 	for id, url := range urls {
-		go startStream(id, url)
+		// use mjpeg lib
+		go startStream(id, url, c)
 	}
-	var end string
-	fmt.Scanln(&end)
+
+	// our handler
+	select {
+	case f := <-c:
+		handleFrame(f)
+	}
 }
 
-func startStream(id int, url string) {
+func handleFrame(f frame) {
+	// defer f.jpeg.Close()
+
+	fileName := fmt.Sprintf("frame.%d.%d.jpg", f.id, f.num)
+	log.Println(fileName)
+
+	jpeg, err := ioutil.ReadAll(f.jpeg)
+	if err != nil {
+		log.Fatal(err)
+	}
+	ioutil.WriteFile(fileName, jpeg, 0644)
+	// file, err := os.Create(fileName)
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
+	// defer file.Close()
+
+	// io.Copy(file, f.jpeg)
+}
+
+// mjpeg lib
+func startStream(id int, url string, c chan<- frame) {
 	log.Printf("starting stream %d", id)
 	resp, err := http.Get(url)
 	if err != nil {
 		log.Fatal(err)
 	} else {
+		defer resp.Body.Close()
 		mediaType, params, err := mime.ParseMediaType(resp.Header.Get("Content-Type"))
 		if err != nil {
 			log.Fatal(err)
 		}
 		if strings.HasPrefix(mediaType, "multipart/") {
-			readStream(id, multipart.NewReader(resp.Body, params["boundary"]))
+			readStream(id, multipart.NewReader(resp.Body, params["boundary"]), c)
 		}
 	}
 }
 
-func readStream(id int, mr *multipart.Reader) {
+func readStream(id int, mr *multipart.Reader, c chan<- frame) {
 	for i := 0; true; i++ {
 		part, err := mr.NextPart()
 		if err == io.EOF {
@@ -49,12 +84,7 @@ func readStream(id int, mr *multipart.Reader) {
 		if err != nil {
 			log.Fatal(err)
 		}
-		mjpeg, err := ioutil.ReadAll(part)
-		if err != nil {
-			log.Fatal(err)
-		}
-		fileName := fmt.Sprintf("frame.%d.%d.jpg", id, i)
-		log.Println(fileName)
-		ioutil.WriteFile(fileName, mjpeg, 0644)
+		handleFrame(frame{id: id, num: i, jpeg: part})
+		// c <- frame{id: id, num: i, jpeg: part}
 	}
 }
