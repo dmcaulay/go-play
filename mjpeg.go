@@ -22,22 +22,26 @@ func main() {
 		}
 		if strings.HasPrefix(mediaType, "multipart/") {
 			mr := multipart.NewReader(resp.Body, params["boundary"])
-			for i := 0; true; i++ {
-				part, err := mr.NextPart()
-				if err == io.EOF {
-					return
-				}
-				if err != nil {
-					log.Fatal(err)
-				}
-				mjpeg, err := ioutil.ReadAll(part)
-				if err != nil {
-					log.Fatal(err)
-				}
-				fileName := fmt.Sprintf("frame.%d.jpg", i)
-				log.Println(fileName)
-				ioutil.WriteFile(fileName, mjpeg, 0644)
-			}
+			readStream(mr)
 		}
+	}
+}
+
+func readStream(mr *multipart.Reader) {
+	for i := 0; true; i++ {
+		part, err := mr.NextPart()
+		if err == io.EOF {
+			return
+		}
+		if err != nil {
+			log.Fatal(err)
+		}
+		mjpeg, err := ioutil.ReadAll(part)
+		if err != nil {
+			log.Fatal(err)
+		}
+		fileName := fmt.Sprintf("frame.%d.jpg", i)
+		log.Println(fileName)
+		ioutil.WriteFile(fileName, mjpeg, 0644)
 	}
 }
