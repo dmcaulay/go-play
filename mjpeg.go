@@ -29,20 +29,13 @@ func main() {
 		go startStream(id, url, c)
 	}
 
-	// our handler
+	// handle frames
 	for {
-		select {
-		case f := <-c:
-			handleFrame(f)
-		}
+		f := <-c
+		fileName := fmt.Sprintf("frame.%d.%d.jpg", f.id, f.num)
+		log.Println(fileName)
+		ioutil.WriteFile(fileName, f.jpeg, 0644)
 	}
-}
-
-func handleFrame(f frame) {
-	fileName := fmt.Sprintf("frame.%d.%d.jpg", f.id, f.num)
-	log.Println(fileName)
-
-	ioutil.WriteFile(fileName, f.jpeg, 0644)
 }
 
 // mjpeg lib
