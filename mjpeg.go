@@ -17,22 +17,26 @@ func main() {
 		"http://extcam-12.se.axis.com/axis-cgi/mjpg/video.cgi?resolution=320x240",
 	}
 	for id, url := range urls {
-		resp, err := http.Get(url)
-		if err != nil {
-			log.Fatal(err)
-		} else {
-			mediaType, params, err := mime.ParseMediaType(resp.Header.Get("Content-Type"))
-			if err != nil {
-				log.Fatal(err)
-			}
-			if strings.HasPrefix(mediaType, "multipart/") {
-				log.Printf("starting stream %d", id)
-				go readStream(id, multipart.NewReader(resp.Body, params["boundary"]))
-			}
-		}
+		go startStream(id, url)
 	}
 	var end string
 	fmt.Scanln(&end)
+}
+
+func startStream(id int, url string) {
+	log.Printf("starting stream %d", id)
+	resp, err := http.Get(url)
+	if err != nil {
+		log.Fatal(err)
+	} else {
+		mediaType, params, err := mime.ParseMediaType(resp.Header.Get("Content-Type"))
+		if err != nil {
+			log.Fatal(err)
+		}
+		if strings.HasPrefix(mediaType, "multipart/") {
+			readStream(id, multipart.NewReader(resp.Body, params["boundary"]))
+		}
+	}
 }
 
 func readStream(id int, mr *multipart.Reader) {
