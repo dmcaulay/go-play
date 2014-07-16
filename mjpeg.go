@@ -14,7 +14,7 @@ import (
 type frame struct {
 	id   int
 	num  int
-	jpeg io.Reader
+	jpeg []byte
 }
 
 func main() {
@@ -30,30 +30,19 @@ func main() {
 	}
 
 	// our handler
-	select {
-	case f := <-c:
-		handleFrame(f)
+	for {
+		select {
+		case f := <-c:
+			handleFrame(f)
+		}
 	}
 }
 
 func handleFrame(f frame) {
-	// defer f.jpeg.Close()
-
 	fileName := fmt.Sprintf("frame.%d.%d.jpg", f.id, f.num)
 	log.Println(fileName)
 
-	jpeg, err := ioutil.ReadAll(f.jpeg)
-	if err != nil {
-		log.Fatal(err)
-	}
-	ioutil.WriteFile(fileName, jpeg, 0644)
-	// file, err := os.Create(fileName)
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
-	// defer file.Close()
-
-	// io.Copy(file, f.jpeg)
+	ioutil.WriteFile(fileName, f.jpeg, 0644)
 }
 
 // mjpeg lib
@@ -84,7 +73,10 @@ func readStream(id int, mr *multipart.Reader, c chan<- frame) {
 		if err != nil {
 			log.Fatal(err)
 		}
-		handleFrame(frame{id: id, num: i, jpeg: part})
-		// c <- frame{id: id, num: i, jpeg: part}
+		jpeg, err := ioutil.ReadAll(part)
+		if err != nil {
+			log.Fatal(err)
+		}
+		c <- frame{id: id, num: i, jpeg: jpeg}
 	}
 }
