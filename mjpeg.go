@@ -34,7 +34,9 @@ func main() {
 				if err != nil {
 					log.Fatal(err)
 				}
-				fmt.Printf("MJPEG frame %d: %d\n", i, len(mjpeg))
+				fileName := fmt.Sprintf("frame.%d.jpg", i)
+				log.Println(fileName)
+				ioutil.WriteFile(fileName, mjpeg, 0644)
 			}
 		}
 	}
