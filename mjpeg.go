@@ -44,15 +44,14 @@ func startStream(id int, url string, c chan<- frame) {
 	resp, err := http.Get(url)
 	if err != nil {
 		log.Fatal(err)
-	} else {
-		defer resp.Body.Close()
-		mediaType, params, err := mime.ParseMediaType(resp.Header.Get("Content-Type"))
-		if err != nil {
-			log.Fatal(err)
-		}
-		if strings.HasPrefix(mediaType, "multipart/") {
-			readStream(id, multipart.NewReader(resp.Body, params["boundary"]), c)
-		}
+	}
+	defer resp.Body.Close()
+	mediaType, params, err := mime.ParseMediaType(resp.Header.Get("Content-Type"))
+	if err != nil {
+		log.Fatal(err)
+	}
+	if strings.HasPrefix(mediaType, "multipart/") {
+		readStream(id, multipart.NewReader(resp.Body, params["boundary"]), c)
 	}
 }
 
